@@ -57,31 +57,43 @@ To see how many inputs FsCheck tried, run the tests at detailed verbosity:
 dotnet test --logger "console;verbosity=detailed"
 ```
 
-## This step: 4 — late-fee template
+## This step: 5 — one late-fee rule
 
-Regular and Children have the same shape: if the movie is late, charge with the late fee,
-otherwise charge the normal price.
-[PriceCodeWithLateFee](src/MovieRentalCharges/PriceCodeWithLateFee.cs) holds that shape once:
+The two `ChargeWithLateFee` methods were the same formula with different numbers. The formula
+moved into [PriceCodeWithLateFee](src/MovieRentalCharges/PriceCodeWithLateFee.cs), and the `1.5`
+that was written in both is now `LateFeeRate`, written once:
 
 ```csharp
 public double Charge(int daysRented)
 {
-    if (IsLate(daysRented))
-        return ChargeWithLateFee(daysRented);
-    else
-        return NormalCharge(daysRented);
+    if (daysRented <= AllowedDays)
+        return daysRented * DailyPrice;
+
+    var lateDays = daysRented - AllowedDays;
+    return AllowedDays * DailyPrice + lateDays * DailyPrice * LateFeeRate;
 }
 ```
 
-[RegularPriceCode](src/MovieRentalCharges/RegularPriceCode.cs) and
-[ChildrenPriceCode](src/MovieRentalCharges/ChildrenPriceCode.cs) fill in `AllowedDays`,
-`NormalCharge` and `ChargeWithLateFee`. The two late-fee calculations are still the same formula,
-written twice. That is the next step.
+A price code is now two numbers:
 
-New release has no late fee, so it stays a plain `IPriceCode`.
+```csharp
+public class ChildrenPriceCode : PriceCodeWithLateFee
+{
+    protected override double DailyPrice => 1.5;
+    protected override int AllowedDays => 3;
+}
+```
+
+Put [RegularPriceCode](src/MovieRentalCharges/RegularPriceCode.cs) and
+[ChildrenPriceCode](src/MovieRentalCharges/ChildrenPriceCode.cs) next to the table in
+[RULES.md](RULES.md): the same numbers.
 
 ```
 dotnet test
 ```
 
 Green.
+
+The property compares charges with `==`, and that is safe here: every price is a multiple of 0.25,
+which a `double` holds exactly, so the order of the multiplications cannot change the result. With
+a price like 0.10 it could, and the property would need a tolerance, or the code `decimal`.

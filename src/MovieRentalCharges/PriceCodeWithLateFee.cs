@@ -2,18 +2,18 @@ namespace MovieRentalCharges;
 
 public abstract class PriceCodeWithLateFee : IPriceCode
 {
+    // Every day after the allowed days costs one and a half times the daily price
+    private const double LateFeeRate = 1.5;
+
+    protected abstract double DailyPrice { get; }
     protected abstract int AllowedDays { get; }
 
     public double Charge(int daysRented)
     {
-        if (IsLate(daysRented))
-            return ChargeWithLateFee(daysRented);
-        else
-            return NormalCharge(daysRented);
+        if (daysRented <= AllowedDays)
+            return daysRented * DailyPrice;
+
+        var lateDays = daysRented - AllowedDays;
+        return AllowedDays * DailyPrice + lateDays * DailyPrice * LateFeeRate;
     }
-
-    protected abstract double NormalCharge(int daysRented);
-    protected abstract double ChargeWithLateFee(int daysRented);
-
-    private bool IsLate(int daysRented) => daysRented > AllowedDays;
 }
