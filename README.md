@@ -57,27 +57,56 @@ To see how many inputs FsCheck tried, run the tests at detailed verbosity:
 dotnet test --logger "console;verbosity=detailed"
 ```
 
-## This step: 7 — fixed
+## This step: 8 — rule properties
 
-`daysRented` is back to `AllowedDays` in
-[PriceCodeWithLateFee.cs](src/MovieRentalCharges/PriceCodeWithLateFee.cs). The code is the same as
-in step 5.
+`LegacyMovieRental` is gone. Comparing with the old code tells us that nothing changed. It cannot
+tell us that the code is right, and it is a copy of the code we wanted to get rid of.
+
+[MovieRentalProperties.cs](tests/MovieRentalCharges.Tests/MovieRentalProperties.cs) now has four
+properties, taken from [RULES.md](RULES.md) instead of from the old code. The rules table is at
+the top of the file, as data:
+
+```csharp
+MovieRentalPriceCode.Regular => (2, 2),
+MovieRentalPriceCode.NewRelease => (3, int.MaxValue),
+MovieRentalPriceCode.Children => (1.5, 3),
+```
+
+| Property | Says |
+|---|---|
+| `One_day_costs_the_daily_price` | The charge for one day is the daily price |
+| `One_more_day_costs_the_daily_price_or_the_late_fee` | Going from `n` to `n + 1` days adds the daily price, or 1.5 × the daily price once day `n + 1` is past the allowed days |
+| `Keeping_a_movie_longer_never_costs_less` | `n + 1` days costs more than `n` days |
+| `A_rental_is_charged_once` | The customer sees one charge |
+
+None of them works out the total the way the code does. The first two together still fix every
+charge: one day is right, and every next day adds the right amount, so every number of days is
+right.
 
 ```
 dotnet test
 ```
 
-Green. The tests have not changed since step 2. Compare:
+Green. Now bring the slip from step 6 back, run the tests, and put the code back:
 
 ```
-git diff movie-rental-charges/step-2-same-as-legacy -- tests
+git checkout movie-rental-charges/step-6-slip -- src
+dotnet test
+git checkout HEAD -- src
 ```
 
-The diff is empty. Now compare the code:
-
 ```
-git diff --stat movie-rental-charges/step-2-same-as-legacy -- src
+Failed MovieRentalCharges.Tests.MovieRentalProperties.One_more_day_costs_the_daily_price_or_the_late_fee
+Label of failing property: day 3 of Regular cost 5, expected 3
 ```
 
-Every line of `MovieRental.Charge` changed, and one property, against one frozen copy, watched all
-of it.
+Or `day 4 of Children cost 3.75, expected 2.25`, depending on the seed. The message talks about
+the rule now: the first late day costs too much. The property that compared with the old code
+could only say "7 before, 9 now".
+
+`Keeping_a_movie_longer_never_costs_less` stays green with the slip: the wrong charges still go
+up. A property can be true and still too weak to catch a mistake.
+
+The days are `PositiveInt` now. `RULES.md` says nothing about 0 or negative days, and with the
+oracle gone, nothing checks them any more. That is a decision to make on purpose: add a rule, or
+write down that it is not covered.
