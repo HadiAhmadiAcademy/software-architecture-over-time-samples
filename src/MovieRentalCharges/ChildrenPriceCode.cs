@@ -1,20 +1,20 @@
 namespace MovieRentalCharges;
 
-public class ChildrenPriceCode : IPriceCode
+public class ChildrenPriceCode : PriceCodeWithLateFee
 {
-    public double Charge(int daysRented)
+    private const double RentalCostPerDay = 1.5;
+
+    protected override int AllowedDays => 3;
+
+    protected override double NormalCharge(int daysRented)
     {
-        var rentalCostPerDay = 1.5;
-        var allowedRentalPeriod = 3;
-        if (daysRented > allowedRentalPeriod)
-        {
-            var daysLate = daysRented - allowedRentalPeriod;
-            return rentalCostPerDay * allowedRentalPeriod + daysLate * rentalCostPerDay * 1.5;
-        }
-        else
-        {
-            var totalRentalFee = rentalCostPerDay * daysRented;
-            return totalRentalFee;
-        }
+        var totalRentalFee = RentalCostPerDay * daysRented;
+        return totalRentalFee;
+    }
+
+    protected override double ChargeWithLateFee(int daysRented)
+    {
+        var daysLate = daysRented - AllowedDays;
+        return RentalCostPerDay * AllowedDays + daysLate * RentalCostPerDay * 1.5;
     }
 }

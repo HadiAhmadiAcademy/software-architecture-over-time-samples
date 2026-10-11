@@ -57,34 +57,31 @@ To see how many inputs FsCheck tried, run the tests at detailed verbosity:
 dotnet test --logger "console;verbosity=detailed"
 ```
 
-## This step: 3 — price codes
+## This step: 4 — late-fee template
 
-[MovieRental.cs](src/MovieRentalCharges/MovieRental.cs) is now:
+Regular and Children have the same shape: if the movie is late, charge with the late fee,
+otherwise charge the normal price.
+[PriceCodeWithLateFee](src/MovieRentalCharges/PriceCodeWithLateFee.cs) holds that shape once:
 
 ```csharp
-public class MovieRental(int daysRented, MovieRentalPriceCode priceCode)
+public double Charge(int daysRented)
 {
-    public void Charge(IPayingCustomer customer) =>
-        customer.Charge(PriceCodes.For(priceCode).Charge(daysRented));
+    if (IsLate(daysRented))
+        return ChargeWithLateFee(daysRented);
+    else
+        return NormalCharge(daysRented);
 }
 ```
 
-Each case of the `switch` moved into its own class behind
-[IPriceCode](src/MovieRentalCharges/IPriceCode.cs):
-[RegularPriceCode](src/MovieRentalCharges/RegularPriceCode.cs),
-[NewReleasePriceCode](src/MovieRentalCharges/NewReleasePriceCode.cs) and
-[ChildrenPriceCode](src/MovieRentalCharges/ChildrenPriceCode.cs).
-[PriceCodes.For](src/MovieRentalCharges/PriceCodes.cs) picks one. The bodies moved as they were;
-only `customer.Charge(x)` became `return x`.
+[RegularPriceCode](src/MovieRentalCharges/RegularPriceCode.cs) and
+[ChildrenPriceCode](src/MovieRentalCharges/ChildrenPriceCode.cs) fill in `AllowedDays`,
+`NormalCharge` and `ChargeWithLateFee`. The two late-fee calculations are still the same formula,
+written twice. That is the next step.
+
+New release has no late fee, so it stays a plain `IPriceCode`.
 
 ```
 dotnet test
 ```
 
-Green. The test project is the same as in step 2.
-
-One difference the property cannot see: for a value that is not in the enum, such as
-`(MovieRentalPriceCode)7`, the old `switch` charged nothing, and `PriceCodes.For` throws.
-FsCheck generates only the three values the enum defines, so this change passes. A property only
-checks the inputs its generators make. Throwing is the behaviour we want here, but it is our
-decision, not something the test approved.
+Green.

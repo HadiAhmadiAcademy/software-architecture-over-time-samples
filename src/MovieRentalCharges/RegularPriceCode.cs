@@ -1,26 +1,24 @@
 namespace MovieRentalCharges;
 
-public class RegularPriceCode : IPriceCode
+public class RegularPriceCode : PriceCodeWithLateFee
 {
-    public double Charge(int daysRented)
+    private const int RentalCostPerDay = 2;
+
+    protected override int AllowedDays => 2;
+
+    protected override double NormalCharge(int daysRented)
     {
-        var rentalCostPerDay = 2;
-        var allowedRentalPeriod = 2;
+        return daysRented * RentalCostPerDay;
+    }
 
-        if (daysRented > allowedRentalPeriod)
-        {
-            var lateRentalDays = daysRented - allowedRentalPeriod;
-            var lateRentalPercentageIncrease = 1.5;
-            var totalRentalFeeIncludingLateFee = allowedRentalPeriod * rentalCostPerDay +
-                                                 lateRentalDays * rentalCostPerDay *
-                                                 lateRentalPercentageIncrease;
+    protected override double ChargeWithLateFee(int daysRented)
+    {
+        var lateRentalDays = daysRented - AllowedDays;
+        var lateRentalPercentageIncrease = 1.5;
+        var totalRentalFeeIncludingLateFee = AllowedDays * RentalCostPerDay +
+                                             lateRentalDays * RentalCostPerDay *
+                                             lateRentalPercentageIncrease;
 
-            return totalRentalFeeIncludingLateFee;
-        }
-        else
-        {
-            var totalRentalFee = daysRented * rentalCostPerDay;
-            return totalRentalFee;
-        }
+        return totalRentalFeeIncludingLateFee;
     }
 }
