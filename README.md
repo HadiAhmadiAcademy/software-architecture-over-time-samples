@@ -42,39 +42,25 @@ dotnet run --project src/WorldCupStandings.Cli
 dotnet test
 ```
 
-## This step: 3 — golden master
+## This step: 4 — refactor the model
 
-One real group reaches only a few of the tie-breakers. To pin down the ranking before refactoring,
-we need inputs that reach all of them.
+First refactoring: give the data names.
 
-[tests/WorldCupStandings.Tests/GoldenMasterTests.cs](tests/WorldCupStandings.Tests/GoldenMasterTests.cs)
-generates 200 groups: four teams drawn at random, some groups with all three rounds played and some
-with only one or two, random scores from 0 to 3, and random cards. Low scores make ties on points
-common, so the head-to-head, goal difference, goals scored and fair play rules all get used.
+- [Match.cs](src/WorldCupStandings/Match.cs) parses a line like `ESP 3-3 POR 2/0/0 1/0/1` into
+  a `Match` with its `Cards`. Each line is parsed once, not once per comparison.
+- [TeamRecord.cs](src/WorldCupStandings/TeamRecord.cs) replaces the `int[]` with magic indices.
+  `TeamRecord.Tally` counts any list of matches into one record per team.
 
-The random generator has a fixed seed (`2026`), so every run produces the same 200 groups. All of
-them, each with its matches and its table, go into one file:
-`GoldenMasterTests.Generated_groups.verified.txt`.
+Because `Tally` works on any list of matches, head-to-head becomes "tally only the matches between
+the tied teams". The two copy-pasted loops that counted head-to-head for team `a` and team `b` are
+gone.
+
+The bubble sort and its nested `if`s are still there, now reading `a.Points` instead of `d[a][6]`.
+The table is still built inside `Calculate`.
 
 ```
-Group 1
-  SUI 2-3 CRO 0/0/0 0/0/1
-  POR 3-0 MAR 2/0/0 1/0/0
-  SUI 2-1 POR 2/0/0 2/0/1
-  CRO 3-3 MAR 3/1/0 3/0/0
-  SUI 0-2 MAR 1/0/0 2/0/0
-  CRO 3-0 POR 2/0/0 0/0/0
-
-Pos Team  P  W  D  L GF GA  GD Pts  FP
-  1 CRO   3  2  1  0  9  5  +4   7 -12
-  2 MAR   3  1  1  1  5  6  -1   4  -6
-  3 SUI   3  1  0  2  4  6  -2   3  -3
-  4 POR   3  1  0  2  4  5  -1   3  -8
+dotnet test
 ```
 
-Nobody checked these 200 tables by hand, and nobody needs to. The old code is the oracle: whatever
-it produced today is what the refactored code must produce tomorrow. That is the difference from
-step 2, where we looked at the one table and agreed with it.
-
-The matches are written above each table so that, when a table changes, the diff shows the input
-that changed it.
+Both approval tests are green. The 2018 table and all 200 generated tables are exactly what the
+legacy code produced.
