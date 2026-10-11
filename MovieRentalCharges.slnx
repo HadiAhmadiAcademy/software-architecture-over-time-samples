@@ -3,4 +3,7 @@
     <Project Path="src/MovieRentalCharges.Cli/MovieRentalCharges.Cli.csproj" />
     <Project Path="src/MovieRentalCharges/MovieRentalCharges.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MovieRentalCharges.Tests/MovieRentalCharges.Tests.csproj" />
+  </Folder>
 </Solution>
