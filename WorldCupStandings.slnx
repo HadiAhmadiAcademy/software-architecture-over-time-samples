@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WorldCupStandings.Cli/WorldCupStandings.Cli.csproj" />
+    <Project Path="src/WorldCupStandings/WorldCupStandings.csproj" />
+  </Folder>
+</Solution>
