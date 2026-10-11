@@ -42,25 +42,42 @@ dotnet run --project src/WorldCupStandings.Cli
 dotnet test
 ```
 
-## This step: 4 — refactor the model
+## This step: 5 — refactor the ranking
 
-First refactoring: give the data names.
+The bubble sort and its nested `if`s are replaced by
+[Ranking.cs](src/WorldCupStandings/Ranking.cs):
 
-- [Match.cs](src/WorldCupStandings/Match.cs) parses a line like `ESP 3-3 POR 2/0/0 1/0/1` into
-  a `Match` with its `Cards`. Each line is parsed once, not once per comparison.
-- [TeamRecord.cs](src/WorldCupStandings/TeamRecord.cs) replaces the `int[]` with magic indices.
-  `TeamRecord.Tally` counts any list of matches into one record per team.
+```csharp
+return tied
+    .OrderByDescending(r => headToHead(r).Points)
+    .ThenByDescending(r => headToHead(r).GoalDifference)
+    .ThenByDescending(r => headToHead(r).GoalsFor)
+    .ThenByDescending(r => r.GoalDifference)
+    .ThenByDescending(r => r.GoalsFor)
+    .ThenByDescending(r => r.FairPlay)
+    .ThenBy(r => r.Team, StringComparer.Ordinal);
+```
 
-Because `Tally` works on any list of matches, head-to-head becomes "tally only the matches between
-the tied teams". The two copy-pasted loops that counted head-to-head for team `a` and team `b` are
-gone.
+Teams are grouped by points. Within each group of tied teams, the tie-breakers are applied in
+order, one line per rule, the same order as [RULES.md](RULES.md). `HeadToHead` gives each tied
+team's record counting only the matches between the tied teams.
 
-The bubble sort and its nested `if`s are still there, now reading `a.Points` instead of `d[a][6]`.
-The table is still built inside `Calculate`.
+This is the riskiest change so far: a different sorting algorithm and a different shape for the
+tie-break logic. The golden master is what makes it safe. Across its 200 groups, each tie-breaker
+decides at least one pair of teams:
+
+| Rule | Pairs decided |
+|---|---|
+| Head-to-head points | 63 |
+| Head-to-head goal difference | 19 |
+| Head-to-head goals scored | 15 |
+| Goal difference | 53 |
+| Goals scored | 24 |
+| Fair play | 33 |
+| Team name | 4 |
 
 ```
 dotnet test
 ```
 
-Both approval tests are green. The 2018 table and all 200 generated tables are exactly what the
-legacy code produced.
+Green. Every table is unchanged.
