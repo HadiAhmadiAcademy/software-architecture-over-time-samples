@@ -57,60 +57,34 @@ To see how many inputs FsCheck tried, run the tests at detailed verbosity:
 dotnet test --logger "console;verbosity=detailed"
 ```
 
-## This step: 2 — same as legacy
+## This step: 3 — price codes
 
-Two new files in `tests/MovieRentalCharges.Tests`:
-
-- [LegacyMovieRental.cs](tests/MovieRentalCharges.Tests/LegacyMovieRental.cs) is a copy of
-  `MovieRental` as it is in step 1, renamed. It will not change. It is the oracle: whatever it
-  charges is the expected answer.
-- [MovieRentalProperties.cs](tests/MovieRentalCharges.Tests/MovieRentalProperties.cs) has one
-  property:
+[MovieRental.cs](src/MovieRentalCharges/MovieRental.cs) is now:
 
 ```csharp
-[Property]
-public Property Charges_the_same_as_the_legacy_code(int daysRented, MovieRentalPriceCode priceCode)
+public class MovieRental(int daysRented, MovieRentalPriceCode priceCode)
+{
+    public void Charge(IPayingCustomer customer) =>
+        customer.Charge(PriceCodes.For(priceCode).Charge(daysRented));
+}
 ```
 
-FsCheck calls it 100 times, each time with a generated `daysRented` and `priceCode`. Both classes
-charge a [RecordingCustomer](tests/MovieRentalCharges.Tests/RecordingCustomer.cs), and the charges
-must be the same.
-
-The property has no expected value written in it. As in the World Cup golden master, the old code
-is the oracle, but nothing is recorded: the old code runs next to the new one, on every input,
-every run.
-
-Two choices worth noticing:
-
-- **`int`, not a positive number.** The generated days include 0 and negative numbers.
-  [RULES.md](RULES.md) says nothing about them, but the code accepts them and charges something,
-  so we pin that down too. A characterization test records what the code does, not what we think
-  it should do.
-- **A list of charges, not a total.** Charging 4 and then 3 is not the same as charging 7 once:
-  the customer sees two charges. If a refactoring splits one charge into two, the property fails.
-
-Right now `MovieRental` is the same code as the copy, so the property cannot fail. To see that it
-can, change the `1.5` in the Children case of `MovieRental.cs` to `1.6` and run the tests:
+Each case of the `switch` moved into its own class behind
+[IPriceCode](src/MovieRentalCharges/IPriceCode.cs):
+[RegularPriceCode](src/MovieRentalCharges/RegularPriceCode.cs),
+[NewReleasePriceCode](src/MovieRentalCharges/NewReleasePriceCode.cs) and
+[ChildrenPriceCode](src/MovieRentalCharges/ChildrenPriceCode.cs).
+[PriceCodes.For](src/MovieRentalCharges/PriceCodes.cs) picks one. The bodies moved as they were;
+only `customer.Charge(x)` became `return x`.
 
 ```
 dotnet test
 ```
 
-```
-Label of failing property: legacy charged [6.75], now charged [6.9]
-Original:
-(5, Children)
-Shrunk:
-(4, Children)
-```
+Green. The test project is the same as in step 2.
 
-FsCheck found an input that fails, then shrank it: it tried smaller inputs until it found the
-smallest one that still fails. Four days is the first late day for Children. The original input
-is different on every run; the shrunk one is always `(4, Children)`. If the first failing input
-is already `(4, Children)`, there is nothing to shrink and only `Original` is printed.
-
-Put the `1.5` back before moving on:
-
-```
-git checkout -- .
-```
+One difference the property cannot see: for a value that is not in the enum, such as
+`(MovieRentalPriceCode)7`, the old `switch` charged nothing, and `PriceCodes.For` throws.
+FsCheck generates only the three values the enum defines, so this change passes. A property only
+checks the inputs its generators make. Throwing is the behaviour we want here, but it is our
+decision, not something the test approved.
