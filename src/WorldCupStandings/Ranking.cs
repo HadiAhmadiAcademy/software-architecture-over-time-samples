@@ -28,7 +28,7 @@ public static class Ranking
     static Func<TeamRecord, TeamRecord> HeadToHead(List<TeamRecord> tied, IReadOnlyList<Match> matches)
     {
         var teams = tied.Select(r => r.Team).ToHashSet();
-        var records = TeamRecord.Tally(matches.Where(m => teams.Contains(m.Home) && teams.Contains(m.Away)));
+        var records = TeamRecord.Tally(matches.Where(m => teams.Contains(m.Home) || teams.Contains(m.Away)));
         return r => records.FirstOrDefault(h => h.Team == r.Team) ?? new TeamRecord(r.Team);
     }
 }

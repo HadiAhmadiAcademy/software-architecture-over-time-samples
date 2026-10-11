@@ -42,42 +42,41 @@ dotnet run --project src/WorldCupStandings.Cli
 dotnet test
 ```
 
-## This step: 5 — refactor the ranking
+## This step: 6 — the slip
 
-The bubble sort and its nested `if`s are replaced by
-[Ranking.cs](src/WorldCupStandings/Ranking.cs):
+One character changed in [Ranking.cs](src/WorldCupStandings/Ranking.cs), in `HeadToHead`:
 
-```csharp
-return tied
-    .OrderByDescending(r => headToHead(r).Points)
-    .ThenByDescending(r => headToHead(r).GoalDifference)
-    .ThenByDescending(r => headToHead(r).GoalsFor)
-    .ThenByDescending(r => r.GoalDifference)
-    .ThenByDescending(r => r.GoalsFor)
-    .ThenByDescending(r => r.FairPlay)
-    .ThenBy(r => r.Team, StringComparer.Ordinal);
+```diff
+- matches.Where(m => teams.Contains(m.Home) && teams.Contains(m.Away))
++ matches.Where(m => teams.Contains(m.Home) || teams.Contains(m.Away))
 ```
 
-Teams are grouped by points. Within each group of tied teams, the tie-breakers are applied in
-order, one line per rule, the same order as [RULES.md](RULES.md). `HeadToHead` gives each tied
-team's record counting only the matches between the tied teams.
-
-This is the riskiest change so far: a different sorting algorithm and a different shape for the
-tie-break logic. The golden master is what makes it safe. Across its 200 groups, each tie-breaker
-decides at least one pair of teams:
-
-| Rule | Pairs decided |
-|---|---|
-| Head-to-head points | 63 |
-| Head-to-head goal difference | 19 |
-| Head-to-head goals scored | 15 |
-| Goal difference | 53 |
-| Goals scored | 24 |
-| Fair play | 33 |
-| Team name | 4 |
+It is the kind of change that looks harmless in review. Now "head-to-head" counts every match a
+tied team played, not only the matches between the tied teams, so it is just the overall record
+again.
 
 ```
 dotnet test
 ```
 
-Green. Every table is unchanged.
+- `Group_B_2018` is **green**. Spain and Portugal drew their match, so head-to-head did not decide
+  anything there, and the slip does not show.
+- `Generated_groups` is **red**. The diff starts at the very first group:
+
+```diff
+ Pos Team  P  W  D  L GF GA  GD Pts  FP
+   1 CRO   3  2  1  0  9  5  +4   7 -12
+   2 MAR   3  1  1  1  5  6  -1   4  -6
+-  3 SUI   3  1  0  2  4  6  -2   3  -3
+-  4 POR   3  1  0  2  4  5  -1   3  -8
++  3 POR   3  1  0  2  4  5  -1   3  -8
++  4 SUI   3  1  0  2  4  6  -2   3  -3
+```
+
+Switzerland beat Portugal 2–1, so Switzerland should be above them even with a worse goal
+difference. With the slip, goal difference decides instead, and the two teams swap.
+
+The test does not say what rule was broken. It shows which tables changed and the matches that
+produced them, and that is enough to find the line.
+
+Do not approve this output. The `.received.txt` file is the evidence; the code is what needs fixing.
