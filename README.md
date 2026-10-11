@@ -42,33 +42,39 @@ dotnet run --project src/WorldCupStandings.Cli
 dotnet test
 ```
 
-## This step: 2 — first approval
+## This step: 3 — golden master
 
-[tests/WorldCupStandings.Tests/GroupStandingsTests.cs](tests/WorldCupStandings.Tests/GroupStandingsTests.cs)
-has one test. It runs the 2018 Group B results through the legacy code and hands the table to
-[Verify](https://github.com/VerifyTests/Verify).
+One real group reaches only a few of the tie-breakers. To pin down the ranking before refactoring,
+we need inputs that reach all of them.
 
-The test has no expected value written in it. The expected value is the file
-`GroupStandingsTests.Group_B_2018.verified.txt` next to it.
+[tests/WorldCupStandings.Tests/GoldenMasterTests.cs](tests/WorldCupStandings.Tests/GoldenMasterTests.cs)
+generates 200 groups: four teams drawn at random, some groups with all three rounds played and some
+with only one or two, random scores from 0 to 3, and random cards. Low scores make ties on points
+common, so the head-to-head, goal difference, goals scored and fair play rules all get used.
 
-To see how that file came to be, delete it and run the tests:
+The random generator has a fixed seed (`2026`), so every run produces the same 200 groups. All of
+them, each with its matches and its table, go into one file:
+`GoldenMasterTests.Generated_groups.verified.txt`.
 
 ```
-dotnet test
+Group 1
+  SUI 2-3 CRO 0/0/0 0/0/1
+  POR 3-0 MAR 2/0/0 1/0/0
+  SUI 2-1 POR 2/0/0 2/0/1
+  CRO 3-3 MAR 3/1/0 3/0/0
+  SUI 0-2 MAR 1/0/0 2/0/0
+  CRO 3-0 POR 2/0/0 0/0/0
+
+Pos Team  P  W  D  L GF GA  GD Pts  FP
+  1 CRO   3  2  1  0  9  5  +4   7 -12
+  2 MAR   3  1  1  1  5  6  -1   4  -6
+  3 SUI   3  1  0  2  4  6  -2   3  -3
+  4 POR   3  1  0  2  4  5  -1   3  -8
 ```
 
-1. The test fails, because there is nothing approved yet.
-2. Verify writes what the code produced to `GroupStandingsTests.Group_B_2018.received.txt` and,
-   if a diff tool is installed, opens it.
-3. You look at the table. It matches the real 2018 table, so you approve it: accept it in the diff
-   tool, or rename `.received.txt` to `.verified.txt`.
-4. Run again. Green.
+Nobody checked these 200 tables by hand, and nobody needs to. The old code is the oracle: whatever
+it produced today is what the refactored code must produce tomorrow. That is the difference from
+step 2, where we looked at the one table and agreed with it.
 
-This is a characterization test: it records what the code does today, not what it should do. We
-looked at the table and agreed with it, but the test would have recorded it either way.
-
-The `.verified.txt` file is committed. `.received.txt` files are in `.gitignore`.
-
-One group exercises only a few paths through the ranking. Spain and Portugal are level on points,
-head-to-head and goal difference, so this group reaches the goals-scored rule, but no group of
-six real matches reaches every tie-breaker.
+The matches are written above each table so that, when a table changes, the diff shows the input
+that changed it.
