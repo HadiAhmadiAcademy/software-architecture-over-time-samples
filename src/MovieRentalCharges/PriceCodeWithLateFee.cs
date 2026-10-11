@@ -14,6 +14,6 @@ public abstract class PriceCodeWithLateFee : IPriceCode
             return daysRented * DailyPrice;
 
         var lateDays = daysRented - AllowedDays;
-        return daysRented * DailyPrice + lateDays * DailyPrice * LateFeeRate;
+        return AllowedDays * DailyPrice + lateDays * DailyPrice * LateFeeRate;
     }
 }

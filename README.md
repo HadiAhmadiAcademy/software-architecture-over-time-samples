@@ -57,48 +57,27 @@ To see how many inputs FsCheck tried, run the tests at detailed verbosity:
 dotnet test --logger "console;verbosity=detailed"
 ```
 
-## This step: 6 — the slip
+## This step: 7 — fixed
 
-One word changed in [PriceCodeWithLateFee.cs](src/MovieRentalCharges/PriceCodeWithLateFee.cs):
-
-```diff
-- return AllowedDays * DailyPrice + lateDays * DailyPrice * LateFeeRate;
-+ return daysRented * DailyPrice + lateDays * DailyPrice * LateFeeRate;
-```
-
-It reads well: "the days times the daily price, plus the late fee". But now every late day is
-charged twice, once at the daily price and once at the late rate.
+`daysRented` is back to `AllowedDays` in
+[PriceCodeWithLateFee.cs](src/MovieRentalCharges/PriceCodeWithLateFee.cs). The code is the same as
+in step 5.
 
 ```
 dotnet test
 ```
 
-Red:
+Green. The tests have not changed since step 2. Compare:
 
 ```
-Label of failing property: legacy charged [7], now charged [9]
-Original:
-(6, Regular)
-Shrunk:
-(3, Regular)
+git diff movie-rental-charges/step-2-same-as-legacy -- tests
 ```
 
-Three days of Regular should be 2 × 2.00 + 1 × 3.00 = 7.00. The slip charges 3 × 2.00 + 3.00 =
-9.00.
+The diff is empty. Now compare the code:
 
-Run it again and the numbers change: FsCheck uses a new seed every run. Sometimes it shrinks to
-`(3, Regular)`, sometimes to `(4, Children)`, which charges 8.25 instead of 6.75. It is always the
-first late day of a price code that has a late fee: the smallest input that shows the mistake.
-Nobody wrote a test for "three days of Regular". FsCheck found it.
-
-To run the same inputs again, copy the pair of numbers after `Falsifiable, after ... tests` into
-the attribute:
-
-```csharp
-[Property(Replay = "(11707880873758951520,1185712109210101887)")]
+```
+git diff --stat movie-rental-charges/step-2-same-as-legacy -- src
 ```
 
-Remove it again when the bug is fixed.
-
-Do not change `LegacyMovieRental` to make the test pass. The copy is the oracle; the code is what
-needs fixing.
+Every line of `MovieRental.Charge` changed, and one property, against one frozen copy, watched all
+of it.
