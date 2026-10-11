@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MovieRentalCharges.Cli/MovieRentalCharges.Cli.csproj" />
+    <Project Path="src/MovieRentalCharges/MovieRentalCharges.csproj" />
+  </Folder>
+</Solution>
