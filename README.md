@@ -57,43 +57,48 @@ To see how many inputs FsCheck tried, run the tests at detailed verbosity:
 dotnet test --logger "console;verbosity=detailed"
 ```
 
-## This step: 5 — one late-fee rule
+## This step: 6 — the slip
 
-The two `ChargeWithLateFee` methods were the same formula with different numbers. The formula
-moved into [PriceCodeWithLateFee](src/MovieRentalCharges/PriceCodeWithLateFee.cs), and the `1.5`
-that was written in both is now `LateFeeRate`, written once:
+One word changed in [PriceCodeWithLateFee.cs](src/MovieRentalCharges/PriceCodeWithLateFee.cs):
 
-```csharp
-public double Charge(int daysRented)
-{
-    if (daysRented <= AllowedDays)
-        return daysRented * DailyPrice;
-
-    var lateDays = daysRented - AllowedDays;
-    return AllowedDays * DailyPrice + lateDays * DailyPrice * LateFeeRate;
-}
+```diff
+- return AllowedDays * DailyPrice + lateDays * DailyPrice * LateFeeRate;
++ return daysRented * DailyPrice + lateDays * DailyPrice * LateFeeRate;
 ```
 
-A price code is now two numbers:
-
-```csharp
-public class ChildrenPriceCode : PriceCodeWithLateFee
-{
-    protected override double DailyPrice => 1.5;
-    protected override int AllowedDays => 3;
-}
-```
-
-Put [RegularPriceCode](src/MovieRentalCharges/RegularPriceCode.cs) and
-[ChildrenPriceCode](src/MovieRentalCharges/ChildrenPriceCode.cs) next to the table in
-[RULES.md](RULES.md): the same numbers.
+It reads well: "the days times the daily price, plus the late fee". But now every late day is
+charged twice, once at the daily price and once at the late rate.
 
 ```
 dotnet test
 ```
 
-Green.
+Red:
 
-The property compares charges with `==`, and that is safe here: every price is a multiple of 0.25,
-which a `double` holds exactly, so the order of the multiplications cannot change the result. With
-a price like 0.10 it could, and the property would need a tolerance, or the code `decimal`.
+```
+Label of failing property: legacy charged [7], now charged [9]
+Original:
+(6, Regular)
+Shrunk:
+(3, Regular)
+```
+
+Three days of Regular should be 2 × 2.00 + 1 × 3.00 = 7.00. The slip charges 3 × 2.00 + 3.00 =
+9.00.
+
+Run it again and the numbers change: FsCheck uses a new seed every run. Sometimes it shrinks to
+`(3, Regular)`, sometimes to `(4, Children)`, which charges 8.25 instead of 6.75. It is always the
+first late day of a price code that has a late fee: the smallest input that shows the mistake.
+Nobody wrote a test for "three days of Regular". FsCheck found it.
+
+To run the same inputs again, copy the pair of numbers after `Falsifiable, after ... tests` into
+the attribute:
+
+```csharp
+[Property(Replay = "(11707880873758951520,1185712109210101887)")]
+```
+
+Remove it again when the bug is fixed.
+
+Do not change `LegacyMovieRental` to make the test pass. The copy is the oracle; the code is what
+needs fixing.
