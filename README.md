@@ -42,41 +42,30 @@ dotnet run --project src/WorldCupStandings.Cli
 dotnet test
 ```
 
-## This step: 6 — the slip
+## This step: 7 — fixed
 
-One character changed in [Ranking.cs](src/WorldCupStandings/Ranking.cs), in `HeadToHead`:
+The `||` in `HeadToHead` is back to `&&`, and the last piece of the old method is moved out:
+[StandingsTable.cs](src/WorldCupStandings/StandingsTable.cs) renders the table from the ranked
+records.
 
-```diff
-- matches.Where(m => teams.Contains(m.Home) && teams.Contains(m.Away))
-+ matches.Where(m => teams.Contains(m.Home) || teams.Contains(m.Away))
+[GroupStandings.cs](src/WorldCupStandings/GroupStandings.cs) is now one line:
+
+```csharp
+public static string Calculate(string[] lines) =>
+    StandingsTable.Render(Ranking.Rank(lines.Select(Match.Parse).ToList()));
 ```
 
-It is the kind of change that looks harmless in review. Now "head-to-head" counts every match a
-tied team played, not only the matches between the tied teams, so it is just the overall record
-again.
+Parsing, counting, ranking and rendering each live in their own file. The public method and its
+output are the same as in step 1.
 
 ```
 dotnet test
 ```
 
-- `Group_B_2018` is **green**. Spain and Portugal drew their match, so head-to-head did not decide
-  anything there, and the slip does not show.
-- `Generated_groups` is **red**. The diff starts at the very first group:
+Green. The `.verified.txt` files have not changed since steps 2 and 3. Compare:
 
-```diff
- Pos Team  P  W  D  L GF GA  GD Pts  FP
-   1 CRO   3  2  1  0  9  5  +4   7 -12
-   2 MAR   3  1  1  1  5  6  -1   4  -6
--  3 SUI   3  1  0  2  4  6  -2   3  -3
--  4 POR   3  1  0  2  4  5  -1   3  -8
-+  3 POR   3  1  0  2  4  5  -1   3  -8
-+  4 SUI   3  1  0  2  4  6  -2   3  -3
+```
+git diff world-cup-standings/step-3-golden-master -- "*.verified.txt"
 ```
 
-Switzerland beat Portugal 2–1, so Switzerland should be above them even with a worse goal
-difference. With the slip, goal difference decides instead, and the two teams swap.
-
-The test does not say what rule was broken. It shows which tables changed and the matches that
-produced them, and that is enough to find the line.
-
-Do not approve this output. The `.received.txt` file is the evidence; the code is what needs fixing.
+The diff is empty: every line of the code changed, and none of the behaviour did.
