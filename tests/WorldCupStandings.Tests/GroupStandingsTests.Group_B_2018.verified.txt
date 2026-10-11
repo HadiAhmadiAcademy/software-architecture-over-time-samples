@@ -1,0 +1,5 @@
+﻿Pos Team  P  W  D  L GF GA  GD Pts  FP
+  1 ESP   3  1  2  0  6  5  +1   5   0
+  2 POR   3  1  2  0  5  4  +1   5   0
+  3 IRN   3  1  1  1  2  2   0   4   0
+  4 MAR   3  0  1  2  2  4  -2   1   0

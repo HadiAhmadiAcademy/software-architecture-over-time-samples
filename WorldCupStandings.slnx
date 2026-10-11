@@ -3,4 +3,7 @@
     <Project Path="src/WorldCupStandings.Cli/WorldCupStandings.Cli.csproj" />
     <Project Path="src/WorldCupStandings/WorldCupStandings.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WorldCupStandings.Tests/WorldCupStandings.Tests.csproj" />
+  </Folder>
 </Solution>

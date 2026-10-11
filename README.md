@@ -42,23 +42,33 @@ dotnet run --project src/WorldCupStandings.Cli
 dotnet test
 ```
 
-## This step: 1 — legacy
+## This step: 2 — first approval
 
-`GroupStandings.Calculate` in
-[src/WorldCupStandings/GroupStandings.cs](src/WorldCupStandings/GroupStandings.cs) does
-everything in one method: it parses the match strings, counts the stats into an `int[]` per team
-indexed by magic numbers, ranks the teams with a bubble sort whose comparison re-parses every
-match for head-to-head, and builds the table as a string.
+[tests/WorldCupStandings.Tests/GroupStandingsTests.cs](tests/WorldCupStandings.Tests/GroupStandingsTests.cs)
+has one test. It runs the 2018 Group B results through the legacy code and hands the table to
+[Verify](https://github.com/VerifyTests/Verify).
 
-It gives the right answer. Run the console app on the 2018 Group B results:
+The test has no expected value written in it. The expected value is the file
+`GroupStandingsTests.Group_B_2018.verified.txt` next to it.
+
+To see how that file came to be, delete it and run the tests:
 
 ```
-Pos Team  P  W  D  L GF GA  GD Pts  FP
-  1 ESP   3  1  2  0  6  5  +1   5   0
-  2 POR   3  1  2  0  5  4  +1   5   0
-  3 IRN   3  1  1  1  2  2   0   4   0
-  4 MAR   3  0  1  2  2  4  -2   1   0
+dotnet test
 ```
 
-There are no tests. Before changing anything, we need a way to know that we haven't changed what
-it does.
+1. The test fails, because there is nothing approved yet.
+2. Verify writes what the code produced to `GroupStandingsTests.Group_B_2018.received.txt` and,
+   if a diff tool is installed, opens it.
+3. You look at the table. It matches the real 2018 table, so you approve it: accept it in the diff
+   tool, or rename `.received.txt` to `.verified.txt`.
+4. Run again. Green.
+
+This is a characterization test: it records what the code does today, not what it should do. We
+looked at the table and agreed with it, but the test would have recorded it either way.
+
+The `.verified.txt` file is committed. `.received.txt` files are in `.gitignore`.
+
+One group exercises only a few paths through the ranking. Spain and Portugal are level on points,
+head-to-head and goal difference, so this group reaches the goals-scored rule, but no group of
+six real matches reaches every tie-breaker.
