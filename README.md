@@ -15,7 +15,6 @@ Clone just that example's branch into its own folder:
 ```
 git clone -b <branch> --single-branch https://github.com/HadiAhmadiAcademy/software-architecture-over-time-samples.git <branch>
 cd <branch>
-git fetch --tags
 ```
 
 Then move between steps:
